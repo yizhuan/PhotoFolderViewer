@@ -2,6 +2,9 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using PhotoFolderViewer.ViewModels;
+using Forms = System.Windows.Forms;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfOpenFileDialog = Microsoft.Win32.OpenFileDialog;
 
 namespace PhotoFolderViewer;
 
@@ -31,7 +34,7 @@ public partial class MainWindow : Window
         };
     }
 
-    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         switch (e.Key)
         {
@@ -67,6 +70,66 @@ public partial class MainWindow : Window
         ConfirmAndDeleteSelectedPhoto();
     }
 
+    private async void OpenPhotoMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new WpfOpenFileDialog
+        {
+            Title = "Open Photo",
+            CheckFileExists = true,
+            CheckPathExists = true,
+            Multiselect = false,
+            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.webp|All Files|*.*"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await _viewModel.OpenTargetAsync(dialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                this,
+                $"Could not open photo. {ex.Message}",
+                "Open Photo Failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async void OpenFolderMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        using var dialog = new Forms.FolderBrowserDialog
+        {
+            Description = "Select a folder containing photos",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = false
+        };
+
+        if (dialog.ShowDialog() != Forms.DialogResult.OK || string.IsNullOrWhiteSpace(dialog.SelectedPath))
+        {
+            return;
+        }
+
+        try
+        {
+            await _viewModel.OpenTargetAsync(dialog.SelectedPath);
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(
+                this,
+                $"Could not open folder. {ex.Message}",
+                "Open Folder Failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
     private void ApplyFullScreenState(bool fullScreen)
     {
         if (fullScreen)
@@ -98,7 +161,7 @@ public partial class MainWindow : Window
         }
 
         var fileName = Path.GetFileName(_viewModel.SelectedImage.FilePath);
-        var result = MessageBox.Show(
+        var result = WpfMessageBox.Show(
             this,
             $"Delete this photo permanently?\n\n{fileName}",
             "Confirm Delete",
@@ -108,7 +171,7 @@ public partial class MainWindow : Window
 
         if (result == MessageBoxResult.Yes && !_viewModel.TryDeleteSelectedImage(out var errorMessage))
         {
-            MessageBox.Show(
+            WpfMessageBox.Show(
                 this,
                 errorMessage ?? "Could not delete the selected photo.",
                 "Delete Failed",

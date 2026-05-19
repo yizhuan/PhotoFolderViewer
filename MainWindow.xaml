@@ -163,6 +163,9 @@
                             </Image.RenderTransform>
                             <Image.ContextMenu>
                                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="Open Photo..." Click="OpenPhotoMenuItem_Click" />
+                                    <MenuItem Header="Open Folder..." Click="OpenFolderMenuItem_Click" />
+                                    <Separator />
                                     <MenuItem Header="Zoom In" Command="{Binding ZoomInCommand}" />
                                     <MenuItem Header="Zoom Out" Command="{Binding ZoomOutCommand}" />
                                     <Separator />

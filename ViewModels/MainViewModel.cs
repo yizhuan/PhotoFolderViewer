@@ -194,6 +194,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync(string? startupTarget)
     {
+        await OpenTargetAsync(startupTarget).ConfigureAwait(false);
+    }
+
+    public async Task OpenTargetAsync(string? startupTarget)
+    {
         var fallback = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         var folder = fallback;
         var selectedPath = string.Empty;
@@ -409,7 +414,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             var image = await _cacheService.GetOrLoadFullAsync(selected.FilePath, token).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 CurrentImage = image;
                 WindowTitle = $"Photo Folder Viewer - {selected.FileName}";
@@ -423,7 +428,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() => CurrentImage = null);
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => CurrentImage = null);
         }
     }
 
@@ -485,7 +490,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             var thumb = await _cacheService.GetOrLoadThumbnailAsync(item.FilePath, 320, cancellationToken).ConfigureAwait(false);
-            await Application.Current.Dispatcher.InvokeAsync(() => item.Thumbnail = thumb);
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => item.Thumbnail = thumb);
         }
         catch
         {
