@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Photo Folder Viewer"
+    Manufacturer="Photo Folder Viewer"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="D771F8A0-B1E4-4D30-87E8-4B1D1325459A"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Language="1033"
+    Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Photo Folder Viewer is already installed." />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Photo Folder Viewer">
+        <Component Id="MainExecutable" Guid="*">
+          <File Id="PhotoFolderViewerExe" Source="$(var.PublishDir)\PhotoFolderViewer.exe" KeyPath="yes" />
+          <Shortcut Id="StartMenuShortcut"
+                    Directory="ProgramMenuFolder"
+                    Name="Photo Folder Viewer"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Advertise="no"
+                    Target="[INSTALLFOLDER]PhotoFolderViewer.exe" />
+        </Component>
+
+        <Component Id="SymbolsFile" Guid="*">
+          <File Id="PhotoFolderViewerPdb" Source="$(var.PublishDir)\PhotoFolderViewer.pdb" />
+        </Component>
+
+        <Component Id="FileAssociations" Guid="*">
+          <RegistryKey Root="HKLM" Key="Software\Classes\PhotoFolderViewer.Image">
+            <RegistryValue Type="string" Value="Photo Folder Viewer Image" />
+            <RegistryKey Key="DefaultIcon">
+              <RegistryValue Type="string" Value="[INSTALLFOLDER]PhotoFolderViewer.exe,0" />
+            </RegistryKey>
+            <RegistryKey Key="shell\open\command">
+              <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]PhotoFolderViewer.exe&quot; &quot;%1&quot;" />
+            </RegistryKey>
+          </RegistryKey>
+
+          <RegistryKey Root="HKLM" Key="Software\Classes\.jpg">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" KeyPath="yes" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.jpeg">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.png">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.bmp">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.gif">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.tif">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.tiff">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+          <RegistryKey Root="HKLM" Key="Software\Classes\.webp">
+            <RegistryValue Type="string" Value="PhotoFolderViewer.Image" />
+          </RegistryKey>
+        </Component>
+
+        <Component Id="CleanupStartMenu" Guid="*">
+          <RegistryValue Root="HKLM" Key="Software\PhotoFolderViewer" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="Photo Folder Viewer" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="SymbolsFile" />
+      <ComponentRef Id="FileAssociations" />
+      <ComponentRef Id="CleanupStartMenu" />
+    </Feature>
+  </Package>
+</Wix>

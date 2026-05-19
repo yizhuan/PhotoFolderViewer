@@ -1,0 +1,56 @@
+# Build outputs
+bin/
+obj/
+
+# Installer outputs
+artifacts/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio / VS Code
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Rider / ReSharper
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Logs and diagnostics
+*.log
+*.tlog
+
+# Test and coverage outputs
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Publish profiles and secrets
+Properties/PublishProfiles/*.pubxml.user
+Properties/PublishProfiles/*.pubxml
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Keep local tool manifest tracked
+!.config/
+!.config/dotnet-tools.json
