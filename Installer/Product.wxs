@@ -28,6 +28,24 @@
           <File Id="PhotoFolderViewerPdb" Source="$(var.PublishDir)\PhotoFolderViewer.pdb" />
         </Component>
 
+        <Component Id="FolderAssociations" Guid="*">
+          <RegistryKey Root="HKLM" Key="Software\Classes\Directory\shell\PhotoFolderViewer">
+            <RegistryValue Type="string" Value="Open in Photo Folder Viewer" KeyPath="yes" />
+            <RegistryValue Name="Icon" Type="string" Value="[INSTALLFOLDER]PhotoFolderViewer.exe,0" />
+            <RegistryKey Key="command">
+              <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]PhotoFolderViewer.exe&quot; &quot;%1&quot;" />
+            </RegistryKey>
+          </RegistryKey>
+
+          <RegistryKey Root="HKLM" Key="Software\Classes\Folder\shell\PhotoFolderViewer">
+            <RegistryValue Type="string" Value="Open in Photo Folder Viewer" />
+            <RegistryValue Name="Icon" Type="string" Value="[INSTALLFOLDER]PhotoFolderViewer.exe,0" />
+            <RegistryKey Key="command">
+              <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]PhotoFolderViewer.exe&quot; &quot;%1&quot;" />
+            </RegistryKey>
+          </RegistryKey>
+        </Component>
+
         <Component Id="FileAssociations" Guid="*">
           <RegistryKey Root="HKLM" Key="Software\Classes\PhotoFolderViewer.Image">
             <RegistryValue Type="string" Value="Photo Folder Viewer Image" />
@@ -74,6 +92,7 @@
     <Feature Id="MainFeature" Title="Photo Folder Viewer" Level="1">
       <ComponentRef Id="MainExecutable" />
       <ComponentRef Id="SymbolsFile" />
+      <ComponentRef Id="FolderAssociations" />
       <ComponentRef Id="FileAssociations" />
       <ComponentRef Id="CleanupStartMenu" />
     </Feature>

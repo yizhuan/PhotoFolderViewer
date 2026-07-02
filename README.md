@@ -90,11 +90,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\release.ps1 -Version 1.0.1
 
 - `cut-release.ps1` updates `<Version>`, `<FileVersion>`, and `<AssemblyVersion>` before building.
 
-## File Association Behavior
+## Shell Integration Behavior
 
-The MSI installer registers file associations so double-clicking these extensions opens Photo Folder Viewer:
+The MSI installer registers both image file associations and a folder shell command:
 
-- `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tif`, `.tiff`, `.webp`
+- Double-click these image types to open in Photo Folder Viewer: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, `.tif`, `.tiff`, `.webp`
+- In File Explorer, right-click a folder and choose "Open in Photo Folder Viewer".
 
 ## GitHub Actions Release
 
