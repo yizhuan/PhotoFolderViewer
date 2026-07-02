@@ -248,6 +248,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
+        FitToScreen();
+
         var initial = string.IsNullOrWhiteSpace(selectedPath)
             ? Images[0]
             : Images.FirstOrDefault(item => string.Equals(item.FilePath, selectedPath, StringComparison.OrdinalIgnoreCase)) ?? Images[0];

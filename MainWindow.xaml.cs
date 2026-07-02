@@ -59,7 +59,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MainImageScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    private void MainImagePane_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         _viewModel.ZoomByMouseWheel(e.Delta);
         e.Handled = true;
