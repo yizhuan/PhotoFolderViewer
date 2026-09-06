@@ -22,7 +22,9 @@
         <SolidColorBrush x:Key="Accent" Color="#55C6FF" />
         <SolidColorBrush x:Key="ThumbSelected" Color="#203245" />
         <SolidColorBrush x:Key="ThumbHover" Color="#1A2733" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <converters:InvertedBooleanToVisibilityConverter x:Key="InvertedBooleanToVisibilityConverter" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
@@ -151,7 +153,8 @@
                    Stretch="{Binding ViewerStretch}"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"
-                   RenderOptions.BitmapScalingMode="HighQuality">
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Visibility="{Binding HasImageContent, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Image.RenderTransform>
                     <ScaleTransform ScaleX="{Binding ZoomFactor}"
                                     ScaleY="{Binding ZoomFactor}" />
@@ -175,12 +178,36 @@
                 </Image.ContextMenu>
             </Image>
 
+            <MediaElement x:Name="MainVideo"
+                          Source="{Binding CurrentVideoSource}"
+                          LoadedBehavior="Manual"
+                          UnloadedBehavior="Stop"
+                          Stretch="Uniform"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Visibility="{Binding HasVideoContent, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          MediaEnded="MainVideo_MediaEnded" />
+
+            <StackPanel HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,18,18"
+                        Orientation="Horizontal"
+                        Visibility="{Binding HasVideoContent, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Button Content="Pause"
+                        Width="80"
+                        Margin="0,0,8,0"
+                        Click="PauseVideoButton_Click" />
+                <Button Content="Restart"
+                        Width="80"
+                        Click="RestartVideoButton_Click" />
+            </StackPanel>
+
             <TextBlock HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        FontSize="16"
                        Foreground="{StaticResource TextMuted}"
-                       Text="No image selected"
-                       Visibility="{Binding CurrentImage, Converter={StaticResource NullToVisibilityConverter}}" />
+                       Text="No media selected"
+                       Visibility="{Binding HasAnyMedia, Converter={StaticResource InvertedBooleanToVisibilityConverter}}" />
         </Grid>
     </Grid>
 </Window>

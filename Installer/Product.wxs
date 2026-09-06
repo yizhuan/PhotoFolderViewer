@@ -10,7 +10,9 @@
     Language="1033"
     Compressed="yes">
 
-    <MajorUpgrade DowngradeErrorMessage="A newer version of Photo Folder Viewer is already installed." />
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Photo Folder Viewer is already installed."
+      AllowSameVersionUpgrades="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Photo Folder Viewer">

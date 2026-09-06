@@ -30,6 +30,21 @@ public partial class MainWindow : Window
             if (args.PropertyName == nameof(MainViewModel.IsFullScreen))
             {
                 ApplyFullScreenState(_viewModel.IsFullScreen);
+                return;
+            }
+
+            if (args.PropertyName == nameof(MainViewModel.HasVideoContent))
+            {
+                if (_viewModel.HasVideoContent)
+                {
+                    MainVideo.Source = _viewModel.CurrentVideoSource;
+                    MainVideo.Play();
+                    return;
+                }
+
+                MainVideo.Stop();
+                MainVideo.Source = null;
+                MainVideo.Position = TimeSpan.Zero;
             }
         };
     }
@@ -65,6 +80,56 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void MainVideo_MediaEnded(object sender, RoutedEventArgs e)
+    {
+        if (MainVideo is null)
+        {
+            return;
+        }
+
+        MainVideo.Position = TimeSpan.Zero;
+        MainVideo.Play();
+    }
+
+    private void ResetVideoPlayback()
+    {
+        if (MainVideo is null)
+        {
+            return;
+        }
+
+        MainVideo.Stop();
+        MainVideo.Source = null;
+        MainVideo.Position = TimeSpan.Zero;
+    }
+
+    private void PauseVideoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MainVideo is null || !MainVideo.IsLoaded)
+        {
+            return;
+        }
+
+        if (MainVideo.CanPause)
+        {
+            MainVideo.Pause();
+            return;
+        }
+
+        MainVideo.Stop();
+    }
+
+    private void RestartVideoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MainVideo is null)
+        {
+            return;
+        }
+
+        MainVideo.Position = TimeSpan.Zero;
+        MainVideo.Play();
+    }
+
     private void DeletePhotoMenuItem_Click(object sender, RoutedEventArgs e)
     {
         ConfirmAndDeleteSelectedPhoto();
@@ -74,11 +139,11 @@ public partial class MainWindow : Window
     {
         var dialog = new WpfOpenFileDialog
         {
-            Title = "Open Photo",
+            Title = "Open Media",
             CheckFileExists = true,
             CheckPathExists = true,
             Multiselect = false,
-            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.webp|All Files|*.*"
+            Filter = "Media Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff;*.webp;*.mp4;*.mov;*.avi;*.mkv;*.wmv;*.webm;*.m4v|All Files|*.*"
         };
 
         if (dialog.ShowDialog(this) != true)
@@ -163,7 +228,7 @@ public partial class MainWindow : Window
         var fileName = Path.GetFileName(_viewModel.SelectedImage.FilePath);
         var result = WpfMessageBox.Show(
             this,
-            $"Delete this photo permanently?\n\n{fileName}",
+            $"Delete this media permanently?\n\n{fileName}",
             "Confirm Delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,

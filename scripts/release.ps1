@@ -6,8 +6,39 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Remove-StalePhotoFolderViewerInstallations {
+    $roots = @(
+        'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
+
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) {
+            continue
+        }
+
+        $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+        foreach ($key in $keys) {
+            $properties = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
+            $displayName = $properties.DisplayName
+            if ($displayName -match 'Photo Folder Viewer') {
+                Write-Host "Removing stale uninstall entry: $($key.Name)"
+                Remove-Item -Path $key.PSPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    $existingProducts = Get-CimInstance Win32_Product -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Photo Folder Viewer' }
+    foreach ($product in $existingProducts) {
+        Write-Host "Uninstalling previous Photo Folder Viewer product: $($product.Name) ($($product.Version)) [$($product.IdentifyingNumber)]"
+        $null = Start-Process -FilePath 'msiexec.exe' -ArgumentList @('/x', $product.IdentifyingNumber, '/qn', '/norestart') -Wait -PassThru
+    }
+}
+
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
+
+Remove-StalePhotoFolderViewerInstallations
 
 $projectFile = Join-Path $projectRoot "PhotoFolderViewer.csproj"
 if (-not (Test-Path $projectFile)) {
@@ -20,6 +51,12 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     if (-not [string]::IsNullOrWhiteSpace($resolvedVersion)) {
         $Version = $resolvedVersion
     }
+}
+
+$existingProducts = Get-CimInstance Win32_Product -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "Photo Folder Viewer" }
+foreach ($product in $existingProducts) {
+    Write-Host "Uninstalling previous Photo Folder Viewer product: $($product.Name) ($($product.Version)) [$($product.IdentifyingNumber)]"
+    $null = Start-Process -FilePath "msiexec.exe" -ArgumentList @("/x", $product.IdentifyingNumber, "/qn", "/norestart") -Wait -PassThru
 }
 
 $publishArgs = @(

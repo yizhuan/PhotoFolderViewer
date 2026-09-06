@@ -14,9 +14,14 @@ namespace PhotoFolderViewer.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private const int InitialThumbnailWarmupCount = 5;
+    private const int BackgroundThumbnailWarmupCount = 30;
+    private const int InitialFullPreloadCount = 1;
+
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp"
+        ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp",
+        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".m4v"
     };
 
     private readonly ImageCacheService _cacheService = new();
@@ -26,6 +31,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private ImageItem? _selectedImage;
     private BitmapSource? _currentImage;
+    private Uri? _currentVideoSource;
     private double _zoomFactor = 1.0;
     private Stretch _viewerStretch = Stretch.Uniform;
     private bool _isSlideshowRunning;
@@ -83,8 +89,34 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _currentImage = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(HasImageContent));
+            OnPropertyChanged(nameof(HasAnyMedia));
+            OnPropertyChanged(nameof(IsVideoSelected));
         }
     }
+
+    public Uri? CurrentVideoSource
+    {
+        get => _currentVideoSource;
+        private set
+        {
+            if (ReferenceEquals(_currentVideoSource, value))
+            {
+                return;
+            }
+
+            _currentVideoSource = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasVideoContent));
+            OnPropertyChanged(nameof(HasAnyMedia));
+            OnPropertyChanged(nameof(IsVideoSelected));
+        }
+    }
+
+    public bool HasImageContent => CurrentImage is not null;
+    public bool HasVideoContent => CurrentVideoSource is not null;
+    public bool HasAnyMedia => HasImageContent || HasVideoContent;
+    public bool IsVideoSelected => CurrentVideoSource is not null;
 
     public double ZoomFactor
     {
@@ -245,6 +277,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (Images.Count == 0)
         {
             CurrentImage = null;
+            CurrentVideoSource = null;
             return;
         }
 
@@ -255,7 +288,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             : Images.FirstOrDefault(item => string.Equals(item.FilePath, selectedPath, StringComparison.OrdinalIgnoreCase)) ?? Images[0];
 
         SelectedImage = initial;
-        await WarmVisibleThumbnailsAsync(GetSelectedIndex(), 40, CancellationToken.None).ConfigureAwait(false);
+        await WarmVisibleThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None).ConfigureAwait(false);
+        _ = QueueRemainingThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None);
     }
 
     public void SelectNextImage()
@@ -381,6 +415,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             StopSlideshow();
             SelectedImage = null;
             CurrentImage = null;
+            CurrentVideoSource = null;
             FitToScreen();
             WindowTitle = string.IsNullOrWhiteSpace(_activeFolder)
                 ? "Photo Folder Viewer"
@@ -415,22 +450,42 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         try
         {
+            if (selected.IsVideo)
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    CurrentImage = null;
+                    CurrentVideoSource = new Uri(selected.FilePath, UriKind.Absolute);
+                    WindowTitle = $"Photo Folder Viewer - {selected.FileName}";
+                });
+
+                _ = WarmVisibleThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None);
+                _ = QueueRemainingThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None);
+                return;
+            }
+
             var image = await _cacheService.GetOrLoadFullAsync(selected.FilePath, token).ConfigureAwait(false);
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 CurrentImage = image;
+                CurrentVideoSource = null;
                 WindowTitle = $"Photo Folder Viewer - {selected.FileName}";
             });
 
-            _ = PreloadUpcomingAsync(GetSelectedIndex(), 3);
-            _ = WarmVisibleThumbnailsAsync(GetSelectedIndex(), 40, CancellationToken.None);
+            _ = PreloadUpcomingAsync(GetSelectedIndex(), InitialFullPreloadCount);
+            _ = WarmVisibleThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None);
+            _ = QueueRemainingThumbnailsAsync(GetSelectedIndex(), InitialThumbnailWarmupCount, CancellationToken.None);
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception)
         {
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() => CurrentImage = null);
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                CurrentImage = null;
+                CurrentVideoSource = null;
+            });
         }
     }
 
@@ -457,21 +512,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    private async Task WarmVisibleThumbnailsAsync(int centerIndex, int radius, CancellationToken cancellationToken)
+    private async Task WarmVisibleThumbnailsAsync(int centerIndex, int maxItems, CancellationToken cancellationToken)
     {
         if (Images.Count == 0)
         {
             return;
         }
 
-        var min = Math.Max(0, centerIndex - radius);
-        var max = Math.Min(Images.Count - 1, centerIndex + radius);
-
-        var tasks = new List<Task>(max - min + 1);
-        for (var i = min; i <= max; i++)
+        var indexes = new List<int>();
+        var pending = new HashSet<int>();
+        for (var offset = 0; offset < Images.Count && indexes.Count < maxItems; offset++)
         {
-            var item = Images[i];
-            if (item.Thumbnail is not null)
+            var left = centerIndex - offset;
+            var right = centerIndex + offset;
+
+            if (offset == 0)
+            {
+                AddIfNeeded(left, indexes, pending);
+            }
+            else
+            {
+                AddIfNeeded(left, indexes, pending);
+                AddIfNeeded(right, indexes, pending);
+            }
+        }
+
+        var tasks = new List<Task>(indexes.Count);
+        foreach (var index in indexes)
+        {
+            var item = Images[index];
+            if (item.Thumbnail is not null || item.IsVideo)
             {
                 continue;
             }
@@ -487,8 +557,58 @@ public sealed class MainViewModel : INotifyPropertyChanged
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
+    private async Task QueueRemainingThumbnailsAsync(int centerIndex, int alreadyLoadedCount, CancellationToken cancellationToken)
+    {
+        if (Images.Count == 0)
+        {
+            return;
+        }
+
+        var queued = new List<Task>();
+        for (var i = 0; i < Images.Count && queued.Count < BackgroundThumbnailWarmupCount; i++)
+        {
+            var item = Images[i];
+            if (item.Thumbnail is not null || item.IsVideo)
+            {
+                continue;
+            }
+
+            if (Math.Abs(i - centerIndex) < alreadyLoadedCount)
+            {
+                continue;
+            }
+
+            queued.Add(LoadThumbnailForItemAsync(item, cancellationToken));
+        }
+
+        if (queued.Count == 0)
+        {
+            return;
+        }
+
+        await Task.WhenAll(queued).ConfigureAwait(false);
+    }
+
+    private void AddIfNeeded(int index, ICollection<int> indexes, ISet<int> pending)
+    {
+        if (index < 0 || index >= Images.Count)
+        {
+            return;
+        }
+
+        if (pending.Add(index))
+        {
+            indexes.Add(index);
+        }
+    }
+
     private async Task LoadThumbnailForItemAsync(ImageItem item, CancellationToken cancellationToken)
     {
+        if (item.IsVideo)
+        {
+            return;
+        }
+
         try
         {
             var thumb = await _cacheService.GetOrLoadThumbnailAsync(item.FilePath, 320, cancellationToken).ConfigureAwait(false);
